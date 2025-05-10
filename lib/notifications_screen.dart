@@ -5,11 +5,36 @@ import 'dashboard_screen.dart';
 import 'search_professionals_screen.dart';
 import 'chat_screen.dart';
 import 'profile_screen.dart';
+import 'services/sms_service.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   final UserInfo userInfo;
 
   const NotificationsScreen({super.key, required this.userInfo});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  final SmsService _smsService = SmsService();
+  final List<SmsMessage> _messages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _smsService.smsStream.listen((message) {
+      setState(() {
+        _messages.insert(0, message); // Add new messages at the top
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _smsService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +51,7 @@ class NotificationsScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Notifications",
+                    "Messages",
                     style: GoogleFonts.kodchasan(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -34,7 +59,7 @@ class NotificationsScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    "Mark all as read",
+                    "Clear all",
                     style: GoogleFonts.kodchasan(
                       fontSize: 14,
                       color: Colors.blueAccent,
@@ -45,98 +70,66 @@ class NotificationsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Single Notification Card
-              Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
-                      child: Image.asset(
-                        'assets/doctor_profile.png',
-                        width: 40,
-                        height: 40,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          RichText(
-                            text: TextSpan(
-                              style: GoogleFonts.kodchasan(
-                                fontSize: 14,
-                                color: Colors.black,
-                              ),
+              // Messages List
+              Expanded(
+                child: _messages.isEmpty
+                    ? Center(
+                        child: Text(
+                          "No messages yet",
+                          style: GoogleFonts.kodchasan(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _messages.length,
+                        itemBuilder: (context, index) {
+                          final message = _messages[index];
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const TextSpan(text: "Dr. Josephine Reyes "),
-                                const TextSpan(text: "requested access to "),
-                                TextSpan(
-                                  text: "your appointment details.",
-                                  style: const TextStyle(
-                                    color: Colors.blueAccent,
-                                    fontWeight: FontWeight.w500,
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      message.sender,
+                                      style: GoogleFonts.kodchasan(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF5A3DA0),
+                                      ),
+                                    ),
+                                    Text(
+                                      _formatTimestamp(message.timestamp),
+                                      style: GoogleFonts.kodchasan(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  message.message,
+                                  style: GoogleFonts.kodchasan(
+                                    fontSize: 14,
+                                    color: Colors.black87,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orangeAccent,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 6,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                ),
-                                child: const Text("Approve"),
-                              ),
-                              const SizedBox(width: 8),
-                              ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey.shade300,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 6,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                ),
-                                child: const Text("Decline"),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "Today at 9:42 AM",
-                            style: GoogleFonts.kodchasan(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
@@ -168,7 +161,7 @@ class NotificationsScreen extends StatelessWidget {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => DashboardScreen(userInfo: userInfo),
+                        builder: (_) => DashboardScreen(userInfo: widget.userInfo),
                       ),
                     );
                   },
@@ -183,9 +176,7 @@ class NotificationsScreen extends StatelessWidget {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder:
-                            (_) =>
-                                SearchProfessionalsScreen(userInfo: userInfo),
+                        builder: (_) => SearchProfessionalsScreen(userInfo: widget.userInfo),
                       ),
                     );
                   },
@@ -200,13 +191,12 @@ class NotificationsScreen extends StatelessWidget {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder:
-                            (_) => ChatScreen(
-                              title: "Chatbot",
-                              imagePath: 'assets/nav_brain.png',
-                              isAI: true,
-                              userInfo: userInfo,
-                            ),
+                        builder: (_) => ChatScreen(
+                          title: "Chatbot",
+                          imagePath: 'assets/nav_brain.png',
+                          isAI: true,
+                          userInfo: widget.userInfo,
+                        ),
                       ),
                     );
                   },
@@ -229,7 +219,7 @@ class NotificationsScreen extends StatelessWidget {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ProfileScreen(userInfo: userInfo),
+                        builder: (_) => ProfileScreen(userInfo: widget.userInfo),
                       ),
                     );
                   },
@@ -245,5 +235,20 @@ class NotificationsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 }
